@@ -24,6 +24,11 @@ if i >= len(posts):
     print("All posts published."); sys.exit(0)
 post = posts[i]
 
+# Skip if something was posted in the last 20 hours (e.g. a manually scheduled test post).
+last = state["log"][-1]["at"] if state["log"] else None
+if last and datetime.datetime.utcnow() - datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ") < datetime.timedelta(hours=20):
+    print(f"Skipping: last post was at {last}"); sys.exit(0)
+
 # Safety: only ever post to the Tailoring Traditions Club Instagram channel.
 chans = gql('query($o: OrganizationId!){ channels(input:{organizationId:$o}){ id name service } }', {"o": ORG_ID})["channels"]
 chan = next((c for c in chans if c["id"] == CHANNEL_ID), None)
