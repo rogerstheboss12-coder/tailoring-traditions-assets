@@ -1,0 +1,26 @@
+name: Daily Instagram post
+on:
+  schedule:
+    - cron: "0 0 * * *"   # 00:00 UTC = 8pm EDT / 7pm EST
+  workflow_dispatch:
+concurrency: daily-post
+permissions:
+  contents: write
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            posts.json
+            scheduler
+          sparse-checkout-cone-mode: false
+      - run: python scheduler/post_next.py
+        env:
+          BUFFER_TOKEN: ${{ secrets.BUFFER_TOKEN }}
+      - run: |
+          git config user.name "ttc-scheduler"
+          git config user.email "ttc-scheduler@users.noreply.github.com"
+          git add scheduler/state.json
+          git commit -m "Log daily post" && git push
