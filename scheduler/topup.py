@@ -3,12 +3,13 @@
 Buffer does the timing; this only needs to run now and then (GitHub's cron is often hours late).
 Usage: python scheduler/topup.py [--now]   (--now also posts the next Reel immediately)
 """
-import json, os, sys, datetime, urllib.request
+import json, os, re, sys, datetime, urllib.request
 from zoneinfo import ZoneInfo
 
 API = "https://api.buffer.com"
 ORG_ID = "6adfe7f4730bcfe1e394b79c"
 CHANNEL_ID = "6adffc3a2f1f5ed648e313df"
+TIKTOK_ID = "6ae289f42f1f5ed64805d6b6"  # one TikTok a day, alongside the 5pm Instagram post
 EXPECTED_NAME = "tailoringtraditionsclub"
 BASE = "https://rogerstheboss12-coder.github.io/tailoring-traditions-assets/final/"
 CT = ZoneInfo("America/Chicago")
@@ -62,6 +63,29 @@ def create(post, due=None):
         sys.exit(f"Post failed: {res}")
     return res["post"]
 
+def tiktok_caption(caption):
+    body = caption.split("\nIllustration:")[0].strip()
+    sents = re.split(r"(?<=[.!?])\s+", body)
+    qi = next((i for i in range(len(sents) - 1, 0, -1) if sents[i].endswith("?")), None)
+    text = sents[0]
+    if qi is not None:
+        q = sents[qi]
+        if len(q.split()) < 7 and qi - 1 > 0:  # short question ("Would you try it?") needs its setup
+            q = sents[qi - 1] + " " + q
+        text += " " + q
+    return text + "\nIllustration: Laurence Fellows\n#oldmoney #menswear #vintagefashion #tailoringtraditionsclub"
+
+def create_tiktok(post, due):
+    video = BASE + post["file"].rsplit(".", 1)[0] + ".mp4"
+    res = gql('''mutation($input: CreatePostInput!){ createPost(input:$input){ __typename
+      ... on PostActionSuccess { post { id } } ... on MutationError { message } } }''',
+      {"input": {"channelId": TIKTOK_ID, "text": tiktok_caption(post["caption"]), "schedulingType": "automatic",
+                 "mode": "customScheduled", "dueAt": utc_str(due), "assets": [{"video": {"url": video}}],
+                 "metadata": {"tiktok": {"isAiGenerated": False}}}})["createPost"]
+    if res["__typename"] != "PostActionSuccess":
+        sys.exit(f"TikTok post failed: {res}")
+    return res["post"]["id"]
+
 now = datetime.datetime.now(datetime.timezone.utc)
 added = 0
 if "--now" in sys.argv and state["next"] < len(posts):
@@ -79,6 +103,15 @@ while len(waiting) < AHEAD and state["next"] < len(posts):
     state["log"].append(entry); waiting.append(entry)
     state["next"] += 1; last = slot; added += 1
     print(f"Scheduled {entry['n']}: {post['file']} for {slot:%a %b %d %I:%M %p %Z}")
+
+done_tt = set(state.setdefault("tiktok_done", []))
+for e in state["log"]:
+    due = datetime.datetime.strptime(e["at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    if due > now and due.astimezone(CT).hour == 17 and "tiktok_id" not in e and e["file"] not in done_tt:
+        e["tiktok_id"] = create_tiktok(posts[e["n"] - 1], due)
+        done_tt.add(e["file"]); added += 1
+        print(f"TikTok {e['n']}: {e['file']} for {due.astimezone(CT):%a %b %d %I:%M %p %Z}")
+state["tiktok_done"] = sorted(done_tt)
 
 json.dump(state, open("scheduler/state.json", "w"), indent=1)
 print(f"Added {added}; {len(waiting)} waiting in Buffer; {len(posts) - state['next']} left in queue.")
