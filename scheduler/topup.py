@@ -1,0 +1,84 @@
+"""Keep Buffer's queue loaded with the next Reels at exact 7am / 5pm Central slots.
+
+Buffer does the timing; this only needs to run now and then (GitHub's cron is often hours late).
+Usage: python scheduler/topup.py [--now]   (--now also posts the next Reel immediately)
+"""
+import json, os, sys, datetime, urllib.request
+from zoneinfo import ZoneInfo
+
+API = "https://api.buffer.com"
+ORG_ID = "6adfe7f4730bcfe1e394b79c"
+CHANNEL_ID = "6adffc3a2f1f5ed648e313df"
+EXPECTED_NAME = "tailoringtraditionsclub"
+BASE = "https://rogerstheboss12-coder.github.io/tailoring-traditions-assets/final/"
+CT = ZoneInfo("America/Chicago")
+SLOT_HOURS = (7, 17)
+AHEAD = 10  # scheduled posts to keep waiting in Buffer
+TOKEN = os.environ["BUFFER_TOKEN"]
+
+def gql(query, variables=None):
+    req = urllib.request.Request(API, data=json.dumps({"query": query, "variables": variables or {}}).encode(),
+                                 headers={"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        out = json.load(r)
+    if out.get("errors"):
+        sys.exit(f"Buffer error: {out['errors']}")
+    return out["data"]
+
+def utc_str(dt):
+    return dt.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+def next_slot(after):
+    """First 7am/5pm Central slot strictly after `after` (aware datetime)."""
+    local = after.astimezone(CT)
+    day = local.date()
+    while True:
+        for h in SLOT_HOURS:
+            slot = datetime.datetime(day.year, day.month, day.day, h, tzinfo=CT)
+            if slot > local + datetime.timedelta(minutes=10):
+                return slot
+        day += datetime.timedelta(days=1)
+
+posts = json.load(open("posts.json"))
+state = json.load(open("scheduler/state.json"))
+
+chans = gql('query($o: OrganizationId!){ channels(input:{organizationId:$o}){ id name service } }', {"o": ORG_ID})["channels"]
+chan = next((c for c in chans if c["id"] == CHANNEL_ID), None)
+if not chan or chan["name"] != EXPECTED_NAME or chan["service"] != "instagram":
+    sys.exit(f"Refusing to post: channel check failed ({chan})")
+
+def create(post, due=None):
+    video = BASE + post["file"].rsplit(".", 1)[0] + ".mp4"
+    with urllib.request.urlopen(urllib.request.Request(video, method="HEAD"), timeout=30) as r:
+        if r.status != 200:
+            sys.exit(f"Video not reachable: {video}")
+    inp = {"channelId": CHANNEL_ID, "text": post["caption"], "schedulingType": "automatic",
+           "assets": [{"video": {"url": video}}],
+           "metadata": {"instagram": {"type": "reel", "shouldShareToFeed": True}}}
+    inp.update({"mode": "customScheduled", "dueAt": utc_str(due)} if due else {"mode": "shareNow"})
+    res = gql('''mutation($input: CreatePostInput!){ createPost(input:$input){ __typename
+      ... on PostActionSuccess { post { id status dueAt } } ... on MutationError { message } } }''', {"input": inp})["createPost"]
+    if res["__typename"] != "PostActionSuccess":
+        sys.exit(f"Post failed: {res}")
+    return res["post"]
+
+now = datetime.datetime.now(datetime.timezone.utc)
+added = 0
+if "--now" in sys.argv and state["next"] < len(posts):
+    p = create(posts[state["next"]])
+    state["log"].append({"n": state["next"] + 1, "file": posts[state["next"]]["file"], "buffer_id": p["id"], "at": utc_str(now), "mode": "now"})
+    state["next"] += 1; added += 1
+
+waiting = [e for e in state["log"] if datetime.datetime.strptime(e["at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc) > now]
+last = max([datetime.datetime.strptime(e["at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc) for e in state["log"]] + [now])
+while len(waiting) < AHEAD and state["next"] < len(posts):
+    slot = next_slot(last)
+    post = posts[state["next"]]
+    p = create(post, slot)
+    entry = {"n": state["next"] + 1, "file": post["file"], "buffer_id": p["id"], "at": utc_str(slot)}
+    state["log"].append(entry); waiting.append(entry)
+    state["next"] += 1; last = slot; added += 1
+    print(f"Scheduled {entry['n']}: {post['file']} for {slot:%a %b %d %I:%M %p %Z}")
+
+json.dump(state, open("scheduler/state.json", "w"), indent=1)
+print(f"Added {added}; {len(waiting)} waiting in Buffer; {len(posts) - state['next']} left in queue.")

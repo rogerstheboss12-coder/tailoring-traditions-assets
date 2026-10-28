@@ -1,5 +1,5 @@
 {
- "next": 2,
+ "next": 13,
  "log": [
   {
    "n": 1,
@@ -13,6 +13,73 @@
    "buffer_id": "6ae085142dee8577b8a02e48",
    "at": "2026-10-27T12:00:00Z",
    "note": "full-bleed pan style test, scheduled 7am CT"
+  },
+  {
+   "n": 3,
+   "file": "laurence-fellows-020.jpg",
+   "buffer_id": "6ae2792159e061556345d006",
+   "at": "2026-10-28T22:37:19Z",
+   "mode": "now"
+  },
+  {
+   "n": 4,
+   "file": "laurence-fellows-115.jpg",
+   "buffer_id": "6ae2792c04f348da40f7328f",
+   "at": "2026-10-29T12:00:00Z"
+  },
+  {
+   "n": 5,
+   "file": "laurence-fellows-051.jpg",
+   "buffer_id": "6ae2792dcc91be5434b385ee",
+   "at": "2026-10-29T22:00:00Z"
+  },
+  {
+   "n": 6,
+   "file": "laurence-fellows-144.jpg",
+   "buffer_id": "6ae2792e04f348da40f732eb",
+   "at": "2026-10-30T12:00:00Z"
+  },
+  {
+   "n": 7,
+   "file": "laurence-fellows-084.jpg",
+   "buffer_id": "6ae2792fcc91be5434b3864b",
+   "at": "2026-10-30T22:00:00Z"
+  },
+  {
+   "n": 8,
+   "file": "laurence-fellows-178.jpg",
+   "buffer_id": "6ae279307d94db46db1f229f",
+   "at": "2026-10-31T12:00:00Z"
+  },
+  {
+   "n": 9,
+   "file": "laurence-fellows-007.jpg",
+   "buffer_id": "6ae27931cfdbbf6de4ed440e",
+   "at": "2026-10-31T22:00:00Z"
+  },
+  {
+   "n": 10,
+   "file": "laurence-fellows-196.png",
+   "buffer_id": "6ae2793204f348da40f734eb",
+   "at": "2026-11-01T13:00:00Z"
+  },
+  {
+   "n": 11,
+   "file": "laurence-fellows-010.jpg",
+   "buffer_id": "6ae27933cc91be5434b386ba",
+   "at": "2026-11-01T23:00:00Z"
+  },
+  {
+   "n": 12,
+   "file": "laurence-fellows-109.jpg",
+   "buffer_id": "6ae2793459e061556345d34d",
+   "at": "2026-11-02T13:00:00Z"
+  },
+  {
+   "n": 13,
+   "file": "laurence-fellows-069.jpg",
+   "buffer_id": "6ae27935cc91be5434b38701",
+   "at": "2026-11-02T23:00:00Z"
   }
  ]
 }
