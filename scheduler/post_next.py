@@ -24,9 +24,14 @@ if i >= len(posts):
     print("All posts published."); sys.exit(0)
 post = posts[i]
 
-# Skip if something was posted in the last 20 hours (e.g. a manually scheduled test post).
+# Post at 7am and 5pm Central (the workflow fires at both UTC offsets; DST-safe).
+from zoneinfo import ZoneInfo
+now_ct = datetime.datetime.now(ZoneInfo("America/Chicago"))
+if now_ct.hour not in (7, 8, 17, 18) and os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch":
+    print(f"Skipping: {now_ct:%H:%M} CT is not a posting slot"); sys.exit(0)
+# Never post twice in one slot (also covers manually scheduled posts).
 last = state["log"][-1]["at"] if state["log"] else None
-if last and datetime.datetime.utcnow() - datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ") < datetime.timedelta(hours=20):
+if last and datetime.datetime.utcnow() - datetime.datetime.strptime(last, "%Y-%m-%dT%H:%M:%SZ") < datetime.timedelta(hours=6):
     print(f"Skipping: last post was at {last}"); sys.exit(0)
 
 # Safety: only ever post to the Tailoring Traditions Club Instagram channel.

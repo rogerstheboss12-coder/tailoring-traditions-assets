@@ -1,7 +1,7 @@
-name: Daily Instagram post
+name: Instagram posts (7am + 5pm CT)
 on:
   schedule:
-    - cron: "0 0 * * *"   # 00:00 UTC = 8pm EDT / 7pm EST
+    - cron: "0 12,13,22,23 * * *"   # covers 7am/5pm Central in both CDT and CST; script picks the right one
   workflow_dispatch:
 concurrency: daily-post
 permissions:
