@@ -74,7 +74,8 @@ def tiktok_caption(caption):
         if len(q.split()) < 7 and qi - 1 > 0:  # short question ("Would you try it?") needs its setup
             q = sents[qi - 1] + " " + q
         text += " " + q
-    return text + "\nIllustration: Laurence Fellows\n#oldmoney #menswear #vintagefashion #tailoringtraditionsclub"
+    credit = next((l for l in caption.splitlines() if l.startswith("Illustration:")), "Illustration: Laurence Fellows")
+    return text + "\n" + credit + "\n#oldmoney #menswear #vintagefashion #tailoringtraditionsclub"
 
 def create_story(post, due):
     video = BASE + post["file"].rsplit(".", 1)[0] + ".mp4"
