@@ -14,7 +14,8 @@ EXPECTED_NAME = "tailoringtraditionsclub"
 BASE = "https://rogerstheboss12-coder.github.io/tailoring-traditions-assets/final/"
 CT = ZoneInfo("America/Chicago")
 SLOT_HOURS = (7, 17)
-AHEAD = 10  # scheduled posts to keep waiting in Buffer
+AHEAD = 5  # Reels to keep waiting in Buffer (free plan: 10 scheduled per channel = 5 Reels + their 5 Stories)
+IG_LIMIT = 10
 TOKEN = os.environ["BUFFER_TOKEN"]
 
 def gql(query, variables=None):
@@ -75,6 +76,18 @@ def tiktok_caption(caption):
         text += " " + q
     return text + "\nIllustration: Laurence Fellows\n#oldmoney #menswear #vintagefashion #tailoringtraditionsclub"
 
+def create_story(post, due):
+    video = BASE + post["file"].rsplit(".", 1)[0] + ".mp4"
+    res = gql('''mutation($input: CreatePostInput!){ createPost(input:$input){ __typename
+      ... on PostActionSuccess { post { id } } ... on MutationError { message } } }''',
+      {"input": {"channelId": CHANNEL_ID, "text": "", "schedulingType": "automatic", "mode": "customScheduled",
+                 "dueAt": utc_str(due), "assets": [{"video": {"url": video}}],
+                 "metadata": {"instagram": {"type": "story", "shouldShareToFeed": False}}}})["createPost"]
+    if res["__typename"] != "PostActionSuccess":
+        print(f"Story not scheduled yet: {res.get('message', res)}")
+        return None
+    return res["post"]["id"]
+
 def create_tiktok(post, due):
     video = BASE + post["file"].rsplit(".", 1)[0] + ".mp4"
     res = gql('''mutation($input: CreatePostInput!){ createPost(input:$input){ __typename
@@ -112,6 +125,20 @@ for e in state["log"]:
         done_tt.add(e["file"]); added += 1
         print(f"TikTok {e['n']}: {e['file']} for {due.astimezone(CT):%a %b %d %I:%M %p %Z}")
 state["tiktok_done"] = sorted(done_tt)
+
+# Share each Instagram Reel to Stories 2 hours after it posts (soonest first, within Buffer's 10-post limit).
+def is_future(t): return datetime.datetime.strptime(t, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc) > now
+reels_waiting = [e for e in state["log"] if is_future(e["at"])]
+stories_waiting = [e for e in state["log"] if e.get("story_at") and is_future(e["story_at"])]
+room = IG_LIMIT - len(reels_waiting) - len(stories_waiting)
+for e in sorted(reels_waiting, key=lambda e: e["at"]):
+    if room <= 0: break
+    if "story_id" in e: continue
+    due = datetime.datetime.strptime(e["at"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc) + datetime.timedelta(hours=2)
+    sid = create_story(posts[e["n"] - 1], due)
+    if not sid: break
+    e["story_id"], e["story_at"] = sid, utc_str(due); room -= 1; added += 1
+    print(f"Story {e['n']}: {e['file']} for {due.astimezone(CT):%a %b %d %I:%M %p %Z}")
 
 json.dump(state, open("scheduler/state.json", "w"), indent=1)
 print(f"Added {added}; {len(waiting)} waiting in Buffer; {len(posts) - state['next']} left in queue.")
