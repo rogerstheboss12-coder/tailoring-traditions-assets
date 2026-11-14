@@ -1,5 +1,5 @@
 {
- "next": 40,
+ "next": 41,
  "log": [
   {
    "n": 1,
@@ -335,6 +335,15 @@
    "at": "2026-11-16T13:00:00Z",
    "story_id": "6af8026ed8bd2962e4102388",
    "story_at": "2026-11-16T15:00:00Z"
+  },
+  {
+   "n": 41,
+   "file": "laurence-fellows-189.jpg",
+   "buffer_id": "6af8a543e5a113497a9dfc37",
+   "at": "2026-11-16T23:00:00Z",
+   "tiktok_id": "6af8a544e5a113497a9dfc70",
+   "story_id": "6af8a544c5b364e0620b3931",
+   "story_at": "2026-11-17T01:00:00Z"
   }
  ],
  "tiktok_done": [
@@ -355,6 +364,7 @@
   "laurence-fellows-155.jpg",
   "laurence-fellows-159.jpg",
   "laurence-fellows-175.jpg",
+  "laurence-fellows-189.jpg",
   "leyendecker-003.jpg",
   "leyendecker-018.jpg",
   "leyendecker-020.jpg",
