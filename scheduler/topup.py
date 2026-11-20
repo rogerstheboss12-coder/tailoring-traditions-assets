@@ -3,7 +3,7 @@
 Buffer does the timing; this only needs to run now and then (GitHub's cron is often hours late).
 Usage: python scheduler/topup.py [--now]   (--now also posts the next Reel immediately)
 """
-import json, os, re, sys, datetime, urllib.request
+import json, os, random, re, sys, datetime, urllib.request
 from zoneinfo import ZoneInfo
 
 API = "https://api.buffer.com"
@@ -64,18 +64,26 @@ def create(post, due=None):
         sys.exit(f"Post failed: {res}")
     return res["post"]
 
-def tiktok_caption(caption):
+TT_TAGS = ["#oldmoney", "#menswear", "#vintagefashion", "#classicmenswear", "#sartorialhistory", "#mensstyle",
+           "#vintagestyle", "#dapper", "#gentlemanstyle", "#vintageart", "#mensfashion", "#timelessstyle"]
+
+def tiktok_caption(caption, seed):
+    """Short TikTok caption. Shape and hashtags vary per post (seeded by the file name) so posts don't look templated to TikTok's spam filter."""
+    rnd = random.Random(seed)
     body = caption.split("\nIllustration:")[0].strip()
     sents = re.split(r"(?<=[.!?])\s+", body)
     qi = next((i for i in range(len(sents) - 1, 0, -1) if sents[i].endswith("?")), None)
-    text = sents[0]
-    if qi is not None:
-        q = sents[qi]
-        if len(q.split()) < 7 and qi - 1 > 0:  # short question ("Would you try it?") needs its setup
-            q = sents[qi - 1] + " " + q
-        text += " " + q
-    credit = next((l for l in caption.splitlines() if l.startswith("Illustration:")), "Illustration: Laurence Fellows")
-    return text + "\n" + credit + "\n#oldmoney #menswear #vintagefashion #tailoringtraditionsclub"
+    q = sents[qi] if qi is not None else ""
+    if q and len(q.split()) < 7 and qi - 1 > 0:  # short question ("Would you try it?") needs its setup
+        q = sents[qi - 1] + " " + q
+    text = rnd.choice([sents[0] + " " + q, sents[0] + " " + q, q or sents[0], sents[0]]).strip()
+    artist = next((l.split(":", 1)[1].strip() for l in caption.splitlines() if l.startswith("Illustration:")), "Laurence Fellows")
+    credit = rnd.choice(["Illustration: {}", "Art by {}", "Illustrated by {}", "{}"]).format(artist)
+    artist_tag = "#leyendecker" if "Leyendecker" in artist else "#laurencefellows"
+    extra = [t for t in re.findall(r"#\w+", caption) if t not in TT_TAGS and t not in (artist_tag, "#tailoringtraditionsclub")]
+    tags = rnd.sample(TT_TAGS + extra, rnd.randint(2, 3)) + rnd.sample([artist_tag, "#tailoringtraditionsclub"], 2)
+    rnd.shuffle(tags)
+    return text + rnd.choice(["\n", "\n\n", " — "]) + credit + rnd.choice(["\n", "\n\n", " "]) + " ".join(tags)
 
 def create_story(post, due):
     video = BASE + post["file"].rsplit(".", 1)[0] + ".mp4"
@@ -93,7 +101,7 @@ def create_tiktok(post, due):
     video = BASE + post["file"].rsplit(".", 1)[0] + ".mp4"
     res = gql('''mutation($input: CreatePostInput!){ createPost(input:$input){ __typename
       ... on PostActionSuccess { post { id } } ... on MutationError { message } } }''',
-      {"input": {"channelId": TIKTOK_ID, "text": tiktok_caption(post["caption"]), "schedulingType": "automatic",
+      {"input": {"channelId": TIKTOK_ID, "text": tiktok_caption(post["caption"], post["file"]), "schedulingType": "automatic",
                  "mode": "customScheduled", "dueAt": utc_str(due), "assets": [{"video": {"url": video}}],
                  "metadata": {"tiktok": {"isAiGenerated": False}}}})["createPost"]
     if res["__typename"] != "PostActionSuccess":
