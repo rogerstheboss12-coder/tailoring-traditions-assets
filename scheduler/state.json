@@ -1,5 +1,5 @@
 {
- "next": 66,
+ "next": 67,
  "log": [
   {
    "n": 1,
@@ -556,6 +556,15 @@
    "at": "2026-11-29T13:00:00Z",
    "story_id": "6b094361658222306cf8ac3b",
    "story_at": "2026-11-29T15:00:00Z"
+  },
+  {
+   "n": 67,
+   "file": "leyendecker-034.jpg",
+   "buffer_id": "6b09f586c02ca0988ab83f51",
+   "at": "2026-11-29T23:00:00Z",
+   "tiktok_id": "6b09f587585cafb820e271ad",
+   "story_id": "6b09f587c02ca0988ab83fb4",
+   "story_at": "2026-11-30T01:00:00Z"
   }
  ],
  "tiktok_done": [
@@ -592,6 +601,7 @@
   "leyendecker-024.jpg",
   "leyendecker-026.jpg",
   "leyendecker-028.jpg",
-  "leyendecker-031.jpg"
+  "leyendecker-031.jpg",
+  "leyendecker-034.jpg"
  ]
 }
