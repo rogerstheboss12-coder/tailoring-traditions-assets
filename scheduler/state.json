@@ -1,5 +1,5 @@
 {
- "next": 67,
+ "next": 68,
  "log": [
   {
    "n": 1,
@@ -565,6 +565,14 @@
    "tiktok_id": "6b09f587585cafb820e271ad",
    "story_id": "6b09f587c02ca0988ab83fb4",
    "story_at": "2026-11-30T01:00:00Z"
+  },
+  {
+   "n": 68,
+   "file": "laurence-fellows-120.jpg",
+   "buffer_id": "6b0a8a0bfe7140cdac9db0e2",
+   "at": "2026-11-30T13:00:00Z",
+   "story_id": "6b0a8a0ecf6d9177300e2c54",
+   "story_at": "2026-11-30T15:00:00Z"
   }
  ],
  "tiktok_done": [
